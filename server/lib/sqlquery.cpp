@@ -1,10 +1,8 @@
 #include "sqlquery.h"
 
 
-sqlQuery::sqlQuery(QString proType,QString store)
+sqlQuery::sqlQuery()
 {
-    this->proType = proType;
-    this->store = store;
     // 查看是否已经建立基于QSQLITE的数据库
     if(QSqlDatabase::contains("qt_sql_default_connection"))
         db = QSqlDatabase::database("qt_sql_default_connection");
@@ -12,6 +10,8 @@ sqlQuery::sqlQuery(QString proType,QString store)
         db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName(QDir::currentPath() + "/../product.db");
     query = QSqlQuery(db); // 将sql进行封装时，需要加上该句
+
+    typeMap << "" << "食物" << "衣服" << "图书" << "电器";
     insert_sql = "insert into product (name,intro,price,rest,type,store,reserved) values(?,?,?,?,?,?,?)";
     update_sql = "update product set name = ?,intro = ?,price = ?,rest = ? where name = ? and store = ?";
     update_reserved_sql = "update product set reserved = reserved + ?,rest = rest - ? where name = ? and store = ?";
@@ -29,17 +29,16 @@ sqlQuery::~sqlQuery()
     db.close();
 }
 
-QByteArray sqlQuery::selectdb(bool isAll)
+QByteArray sqlQuery::selectdb(QString proType)
 {
     if(db.open()){
         qDebug()<<"[Product Select] Database Opened";
         //查询所有记录
-        if(isAll){
+        if(proType == "0"){
             query.prepare(select_all_sql);
-        }
-        else{
+        }else{
             query.prepare(select_all_type);
-            query.addBindValue(proType);
+            query.addBindValue(typeMap[proType.toInt()]);
         }
         if(!query.exec())
         {
@@ -51,18 +50,18 @@ QByteArray sqlQuery::selectdb(bool isAll)
     return transform(query);
 }
 
-QByteArray sqlQuery::selectStoredb(bool isAll)
+QByteArray sqlQuery::selectStoredb(QString proType,QString store)
 {
     if(db.open()){
         qDebug()<<"[Product Select] Database Opened";
         //查询所有记录
-        if(isAll){
+        if(proType == "0"){
             query.prepare(select_store_sql);
             query.addBindValue(store);
         }else{
             query.prepare(select_store_type);
             query.addBindValue(store);
-            query.addBindValue(proType);
+            query.addBindValue(typeMap[proType.toInt()]);
         }
         if(!query.exec())
         {
@@ -154,7 +153,6 @@ bool sqlQuery::insertdb(QStringList sL)
         if(!query.exec())
         {
             qDebug() << query.lastError();
-            return false;
         }
         else
         {
@@ -163,33 +161,33 @@ bool sqlQuery::insertdb(QStringList sL)
         }
     }else{
         qDebug() << "[Product Insert] Inserted Failed!";
-        return false;
     }
+    return false;
 }
 
-bool sqlQuery::updatedb(QStringList sL,QString name,QString store)
+bool sqlQuery::updatedb(QStringList sL)
 {
+    qDebug() << sL;
     if(db.open()){
         qDebug()<<"[Product Update] Database Opened";
-        if(sL.length() == 1){
+        if(sL.length() == 3){
             query.prepare(update_reserved_sql);
             query.addBindValue(sL[0]);
             query.addBindValue(sL[0]);
-            query.addBindValue(name);
-            query.addBindValue(store);
+            query.addBindValue(sL[1]);
+            query.addBindValue(sL[2]);
         }else{
             query.prepare(update_sql);
             query.addBindValue(sL[0]);
             query.addBindValue(sL[1]);
             query.addBindValue(sL[2].toInt());
             query.addBindValue(sL[3].toInt());
-            query.addBindValue(name);
-            query.addBindValue(store);
+            query.addBindValue(sL[4]);
+            query.addBindValue(sL[5]);
         }
         if(!query.exec())
         {
             qDebug() << query.lastError();
-            return false;
         }
         else
         {
@@ -198,8 +196,8 @@ bool sqlQuery::updatedb(QStringList sL,QString name,QString store)
         }
     }else{
         qDebug() << "[Product Update] Updated Failed!";
-        return false;
     }
+    return false;
 }
 
 bool sqlQuery::updateResetDb(QString name, QString store)
@@ -212,7 +210,6 @@ bool sqlQuery::updateResetDb(QString name, QString store)
         if(!query.exec())
         {
             qDebug() << query.lastError();
-            return false;
         }
         else
         {
@@ -221,12 +218,12 @@ bool sqlQuery::updateResetDb(QString name, QString store)
         }
     }else{
         qDebug() << "[Product Update] Updated Failed!";
-        return false;
     }
+    return false;
 }
 
 
-bool sqlQuery::deldb(QString name,QString store)
+bool sqlQuery::deletedb(QString name,QString store)
 {
     if(db.open()){
         qDebug()<<"[Product Delete] Database Opened";
@@ -236,7 +233,6 @@ bool sqlQuery::deldb(QString name,QString store)
         if(!query.exec())
         {
             qDebug() << query.lastError();
-            return false;
         }
         else
         {
@@ -245,6 +241,6 @@ bool sqlQuery::deldb(QString name,QString store)
         }
     }else{
         qDebug() << "[Product Delete] Delete Failed!";
-        return false;
     }
+    return false;
 }

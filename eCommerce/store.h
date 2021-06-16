@@ -12,12 +12,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include "client.h"
 #include "lib/user.h"
-#include "lib/sqldiscount.h"
-#include "lib/sqlquery.h"
-#include "lib/sqlcart.h"
 #include "lib/dialog.h"
-#include "lib/jsonexe.h"
 #include "lib/product.h"
 #include "ui_store.h"
 #include "mainwindow.h"
@@ -147,32 +144,42 @@ private slots:
      */
     void on_discount_clicked();
 
-
+    /**
+     * @brief 商品添加购物车事件
+     */
     void on_cartPro_clicked();
-
+    /**
+     * @brief 生成订单事件
+     */
     void on_order_clicked();
-
+    /**
+     * @brief 支付订单事件
+     */
     void on_pay_clicked();
-
+    /**
+     * @brief 编辑购物车商品事件
+     */
     void on_editCart_clicked();
-
+    /**
+     * @brief 删除购物车商品事件
+     */
     void on_deleteCart_clicked();
-
+    /**
+     * @brief 取消订单事件
+     */
     void on_cancelorder_clicked();
 
 private:
     Ui::store *ui;
     QStringList typeMap;
     QStandardItemModel* model,*cartmodel;
+    QModelIndexList selectedList;
 
     user* user;
     int proType,mode;
     class product* pro;
-    sqlQuery* sqlQ;
-    sqlDiscount* sqlD;
-    sqlCart* sqlC;
+    class client* client;
     dialog* dia;
-    jsonexe* json;
 };
 
 #endif // STORE_H

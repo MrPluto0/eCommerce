@@ -4,7 +4,7 @@
 #include <QString>
 
 /**
- * @brief 商品基础
+ * @brief 商品基类
  */
 class product
 {

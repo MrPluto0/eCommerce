@@ -12,11 +12,14 @@ regis::regis(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::regis)
 {
+    this->setAttribute(Qt::WA_DeleteOnClose);
     ui->setupUi(this);
+    client = new class client();
 }
 
 regis::~regis()
 {
+    delete client;
     delete ui;
 }
 
@@ -37,21 +40,22 @@ void regis::on_complete_clicked()
             throw "您输入的两次密码不相同";
         }
         else{
-            if(ui->business->isChecked()){
-                json = new jsonexe(1);
+            QStringList params;
+            params << ui->username->text() << ui->password->text();
+            if(ui->business->isChecked())
+                params << "1";
+            else if (ui->guest->isChecked())
+                params << "0";
+            if(client->sendData("JsonExe","AppendJson",params)){
+                if(client->getResult()=="1"){
+                    QMessageBox::information(NULL, "注册成功", "请重新登录");
+                    MainWindow* mw = new MainWindow;
+                    mw->show();
+                    this->close();
+                }
+                else  throw "您输入的账号已存在";
             }
-            else if (ui->guest->isChecked()) {
-                json = new jsonexe(0);
-            }
-            if(json->appendJson(ui->username->text(),ui->password->text())){
-                QMessageBox::information(NULL, "注册成功", "请重新登录");
-                MainWindow* mw = new MainWindow;
-                mw->show();
-                this->close();
-            }
-            else{
-                throw "您输入的账号已存在";
-            }
+            else  throw "服务端出错";
         }
     } catch (const char* msg) {
         QMessageBox::information(NULL, "注册失败", msg);

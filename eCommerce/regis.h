@@ -7,7 +7,7 @@
 #include <QRadioButton>
 #include <QTextStream>
 #include <QtDebug>
-#include "lib/jsonexe.h"
+#include "client.h"
 #include "mainwindow.h"
 #include "store.h"
 #include "ui_regis.h"
@@ -41,7 +41,7 @@ private slots:
 
 private:
     Ui::regis *ui;
-    jsonexe* json;
+    class client* client;
 };
 
 #endif // REGIS_H

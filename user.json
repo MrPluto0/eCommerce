@@ -7,24 +7,17 @@
         "username": "gym"
     },
     {
-        "acount": "681",
-        "password": "12312",
-        "score": "0",
-        "type": 1,
-        "username": "pluto"
-    },
-    {
-        "acount": "3000",
+        "acount": "240",
         "password": "123",
         "score": "0",
         "type": 1,
         "username": "123"
     },
     {
-        "acount": "93.2",
-        "password": "12",
+        "acount": "360",
+        "password": "123",
         "score": "0",
-        "type": 0,
-        "username": "manage"
+        "type": "0",
+        "username": "pluto"
     }
 ]

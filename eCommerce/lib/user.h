@@ -3,6 +3,9 @@
 
 #include <QString>
 
+/**
+ * @brief 用户基类
+ */
 class user
 {
 private:
@@ -21,6 +24,9 @@ public:
     bool purchase(float price,int discount);
 };
 
+/**
+ * @brief 用户子类：顾客
+ */
 class guest:public user
 {
 public:
@@ -28,6 +34,9 @@ public:
     int getUserType();
 };
 
+/**
+ * @brief 用户子类：商家
+ */
 class business:public user
 {
 public:

@@ -25,8 +25,6 @@ void dialog::setLineList(QStringList sL)
 
 QStringList dialog::getContent()
 {
-    if(dia) delete dia;
-
     QFormLayout form(dia);
     QLabel* label = new QLabel("商品:");
     label->setFont(QFont("Arial" , 14 , QFont::Thin));

@@ -6,17 +6,16 @@ store::store(QWidget *parent) :
 {
     // 设置关闭窗口调用析构函数
     this->setAttribute(Qt::WA_DeleteOnClose);
-
     ui->setupUi(this);
+
     proType = 0;    //是否分类模式
     mode = 0;       //是否用户模式
-    sqlQ = new sqlQuery();
-    sqlD = new sqlDiscount();
-    sqlC = new sqlCart();
+
+    client = new class client();
     dia = new dialog(this);
+
     user = NULL;
     pro = NULL;
-    json = NULL;
     typeMap << "" << "食物" << "衣服" << "图书" << "电器";
 
     // 利用lambda表达式向槽函数传参
@@ -39,12 +38,10 @@ store::~store()
     if(this->cartmodel->rowCount()!=0){
         this->on_cancelorder_clicked();
     }
-
-    delete ui;
-    if(sqlQ) delete sqlQ;
     if(model) delete model;
     if(dia) delete this->dia;
-    if(json) delete json;
+    if(client) delete client;
+    delete ui;
 }
 
 void store::on_close_clicked()
@@ -70,8 +67,6 @@ void store::getData(QJsonObject user)
     ui->acount->setText(sL[1]);
     ui->score->setText(sL[2]);
     ui->managePro->setVisible(this->user->getUserType()==1);
-    // 初始化json
-    this->json = new jsonexe(this->user->getUserType());
 }
 
 void store::setHeaders()
@@ -122,21 +117,30 @@ void store::on_toCart_clicked()
 
     this->cartmodel->removeRows(0,cartmodel->rowCount());
 
-    QSqlQuery query= sqlC->selectdb(this->user->getUsername());;
-    while(query.next())
-    {
-        int row = this->cartmodel->rowCount();
-        QStringList sL; //QStringList不能用普通的索引set，但是可以get
-        sL << query.value(1).toString();
-        sL << query.value(2).toString();
-        sL << query.value(3).toString();
-        sL << query.value(4).toString();
-        sL << QString::number(query.value(2).toInt()*query.value(3).toInt());
-        for (int i=0;i<=4;i++) {
-            this->cartmodel->setItem(row,i,new QStandardItem(sL[i]));
-            this->cartmodel->item(row,i)->setTextAlignment(Qt::AlignCenter);  //item居中！！！
+    QStringList params;     params<<this->user->getUsername();
+    if(client->sendData("SqlCart","Selectdb",params)){
+        QByteArray content= client->getResult();
+        if(content == ""){
+            qDebug() << "[QT网络通信]服务端出错";
+            return ;
+        }
+        QJsonDocument jdoc = QJsonDocument::fromJson(content);
+        QJsonArray jarr = jdoc.array();
+        for (int row=0; row<jarr.size(); row++) {
+            QJsonObject jobj = jarr.at(row).toObject();
+            QStringList sL;
+            sL << jobj["name"].toString();
+            sL << jobj["price"].toString();
+            sL << jobj["number"].toString();
+            sL << jobj["store"].toString();
+            sL << jobj["total"].toString();
+            for (int i=0;i<=4;i++) {
+                cartmodel->setItem(row,i,new QStandardItem(sL[i]));
+                cartmodel->item(row,i)->setTextAlignment(Qt::AlignCenter);  //item居中！！！
+            }
         }
     }
+
 }
 
 // 跳转商店
@@ -157,37 +161,49 @@ void store::on_toAbout_clicked()
 // 列出商品信息
 void store::showProducts(int proType)
 {
-    int row=0;
-    QSqlQuery query;
-
     this->proType = proType;
-
     // 清理除了表头的数据
     this->model->removeRows(0,model->rowCount());
-
+    this->setHeaders();
     // 初始化sqlQ
-    if(this->sqlQ)  delete this->sqlQ;
-    this->sqlQ = new sqlQuery(typeMap[proType],user->getUsername());
+    typeMap[proType],user->getUsername();
 
     // 根据模式获取数据库查询结果
-    if(mode == 0)
-        query = this->sqlQ->selectdb(proType==0);
-    else
-        query = this->sqlQ->selectStoredb(proType==0);
-    while(query.next())
-    {
+    QStringList params;
+    QByteArray content;
+    if(mode == 0){
+        params << QString::number(proType);
+        if(client->sendData("SqlQuery","Selectdb",params)){
+            content = client->getResult();
+        }else{
+            qDebug() << "[QT网络通信]服务端出错";
+        }
+    }
+    else{
+        params << QString::number(proType) << user->getUsername();
+        if(client->sendData("SqlQuery","SelectStoredb",params)){
+            content = client->getResult();
+        }else{
+            qDebug() << "[QT网络通信]服务端出错";
+        }
+    }
+    // 将结果写入表格
+    QJsonDocument jdoc = QJsonDocument::fromJson(content);
+    QJsonArray jarr = jdoc.array();
+    for (int row=0; row<jarr.size(); row++) {
+        QJsonObject jobj = jarr.at(row).toObject();
         QStringList sL; //QStringList不能用普通的索引set，但是可以get
-        sL << query.value(6).toString();    //商品类型type
-        sL << query.value(1).toString();
-        sL << query.value(2).toString();
-        sL << query.value(3).toString();
-        sL << query.value(4).toString();
-        sL << query.value(5).toString();
+        sL << jobj["type"].toString();
+        sL << jobj["name"].toString();
+        sL << jobj["intro"].toString();
+        sL << jobj["price"].toString();
+        sL << jobj["rest"].toString();
+        sL << jobj["store"].toString();
+        qDebug() << sL;
         for (int i=0;i<=5;i++) {
             model->setItem(row,i,new QStandardItem(sL[i]));
             model->item(row,i)->setTextAlignment(Qt::AlignCenter);  //item居中！！！
         }
-        row++;
     }
 }
 
@@ -268,13 +284,24 @@ void store::on_buyPro_clicked()
     if(this->getProduct(0)){
         QStringList sL = pro->getContentList();
         float price = pro->getPrice();
-        int discount = sqlD->selectdb(sL[5],sL[4]);
+        QStringList params; params << sL[5] << sL[4];
+        client->sendData("SqlDiscount","Selectdb",params);
+        int discount = client->getResult().toInt();
         if(this->dia->buyProduct(price,discount)){
             if(user->purchase(price,discount)){
-                json->editJson(user->getInfoList());
+                QStringList sLL; sLL << sL[4];
+                if(discount!=0) sLL << QString::number(price*discount/10,'f',1);
+                else sLL << QString::number(price);
+                client->sendData("JsonExe","EditJson",user->getInfoList()); //用户付款
+                client->sendData("JsonExe","EditJson",sLL); //商家收款
                 pro->updateRest(1);
-                QStringList sL = pro->getContentList();
-                sqlQ->updatedb(sL,sL[0],sL[4]);
+                QStringList params = pro->getContentList();
+                params.insert(4,params[0]);
+                params.insert(5,params[5]);
+                if(client->sendData("SqlQuery","Updatedb",params)){
+                    if(client->getResult()!="1")
+                        QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+                }
                 this->showProducts(proType);
             }else{
                 QMessageBox::information(NULL, "提示", "余额不足");
@@ -295,7 +322,10 @@ void store::on_addPro_clicked()
     if(dsL[0] == "1" && dsL[1] != ""){
         dsL.removeAt(0);
         dsL<<user->getUsername();
-        sqlQ->insertdb(dsL);
+        if(client->sendData("SqlQuery","Insertdb",dsL)){
+            if(client->getResult()!="1")
+                QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+        }
         this->showProducts(proType);
     }else{
         QMessageBox::information(NULL,"提示","请输入完整的信息");
@@ -314,7 +344,11 @@ void store::on_editPro_clicked()
         QStringList dsL = this->dia->getContent();
         if(dsL[0] == "1"){
             dsL.removeAt(0);
-            sqlQ->updatedb(dsL,sL[0],sL[4]);
+            dsL.insert(4,sL[0]);dsL.insert(5,sL[4]);
+            if(client->sendData("SqlQuery","Updatedb",dsL)){
+                if(client->getResult()!="1")
+                    QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+            }
             //  sqlQ->outPut();
             this->showProducts(proType);
         }
@@ -330,9 +364,13 @@ void store::on_delPro_clicked()
 {
     // tableView中删除remove导致下面获取data失败
     if(this->getProduct(0)){
-        QString name = pro->getContentList()[0];
+        QStringList params;
+        params << pro->getContentList()[0] << user->getUsername();
         // 在数据库中删除
-        sqlQ->deldb(name,user->getUsername());
+        if(client->sendData("SqlQuery","Deletedb",params)){
+            if(client->getResult()!="1")
+                QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+        }
         this->showProducts(proType);
     }
     else{
@@ -343,24 +381,32 @@ void store::on_delPro_clicked()
 // 点击“搜索商品”按钮
 void store::on_searchPro_clicked()
 {
-    int row=0;
     qDebug() << "[Search Pro]" << ui->searchContent->text();
-    QSqlQuery query = sqlQ->searchdb(ui->searchContent->text());
     model->removeRows(0,model->rowCount());
-    while(query.next())
-    {
-        QStringList sL; //QStringList不能用普通的索引set，但是可以get
-        sL << query.value(6).toString();    //商品类型type
-        sL << query.value(1).toString();
-        sL << query.value(2).toString();
-        sL << query.value(3).toString();
-        sL << query.value(4).toString();
-        sL << query.value(5).toString();
-        for (int i=0;i<=5;i++) {
-            model->setItem(row,i,new QStandardItem(sL[i]));
-            model->item(row,i)->setTextAlignment(Qt::AlignCenter);  //item居中！！！
+    QStringList params;
+    params << ui->searchContent->text();
+    if(client->sendData("SqlQuery","Searchdb",params)){
+        QByteArray content = client->getResult();
+        if(content=="") {
+            QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+            return;
         }
-        row++;
+        QJsonDocument jdoc = QJsonDocument::fromJson(content);
+        QJsonArray jarr = jdoc.array();
+        for (int row=0; row<jarr.size(); row++) {
+            QJsonObject jobj = jarr.at(row).toObject();
+            QStringList sL; //QStringList不能用普通的索引set，但是可以get
+            sL << jobj["type"].toString();
+            sL << jobj["name"].toString();
+            sL << jobj["intro"].toString();
+            sL << jobj["price"].toString();
+            sL << jobj["rest"].toString();
+            sL << jobj["store"].toString();
+            for (int i=0;i<=5;i++) {
+                model->setItem(row,i,new QStandardItem(sL[i]));
+                model->item(row,i)->setTextAlignment(Qt::AlignCenter);  //item居中！！！
+            }
+        }
     }
 }
 
@@ -376,7 +422,7 @@ void store::on_editPass_clicked()
         if(!user->editPass(sL)){
             QMessageBox::information(NULL, "提示", "账号或旧密码错误");
         }
-        else if(json->editJson(user->getInfoList())){
+        else if(client->sendData("JsonExe","EditJson",user->getInfoList())){
             QMessageBox::information(NULL, "提示", "密码修改成功");
         }
     }
@@ -391,7 +437,7 @@ void store::on_recharge_clicked()
     QStringList sL = this->dia->recharge();
     if(sL[0] == "1"){
         user->recharge(sL[1].toInt());
-        if(json->editJson(user->getInfoList())){
+        if(client->sendData("JsonExe","EditJson",user->getInfoList())){
             QStringList sL = this->user->getInfoList();
             ui->acount->setText(sL[1]);
             QMessageBox::information(NULL, "提示", "账户充值成功");
@@ -406,7 +452,10 @@ void store::on_discount_clicked()
     dia = new dialog(this);
 
     QStringList sL = this->dia->addDiscount();
-    if(sqlD->insertdb(sL[1],sL[2],user->getUsername())){
+    QStringList params;
+    params << sL[1] << sL[2] << user->getUsername();
+    client->sendData("SqlDiscount","Insertdb",params);
+    if(client->getResult()=="1"){
         QMessageBox::information(NULL, "提示", "打折成功");
     }else{
         QMessageBox::information(NULL, "提示", "输入不完整");
@@ -417,13 +466,22 @@ void store::on_discount_clicked()
 void store::on_order_clicked()
 {
     float amount=0;
-    for (int i=0;i<this->cartmodel->rowCount();i++) {
-        QString name = this->cartmodel->data(this->cartmodel->index(i,0)).toString();
-        QString reserved = this->cartmodel->data(this->cartmodel->index(i,2)).toString();
-        QString store = this->cartmodel->data(this->cartmodel->index(i,3)).toString();
-        float total = this->cartmodel->data(this->cartmodel->index(i,4)).toFloat();
-        QStringList sL;     sL << reserved;
-        sqlQ->updatedb(sL,name,store);
+    selectedList =  ui->cartlist->selectionModel()->selectedRows();
+    for (int i = 0; i < selectedList.count(); i++)
+    {
+        int row = selectedList.at(i).row();
+        QString name = this->cartmodel->data(this->cartmodel->index(row,0)).toString();
+        QString reserved = this->cartmodel->data(this->cartmodel->index(row,2)).toString();
+        QString store = this->cartmodel->data(this->cartmodel->index(row,3)).toString();
+        float total = this->cartmodel->data(this->cartmodel->index(row,4)).toFloat();
+        QStringList params;
+        params << reserved << name << store;
+        if(client->sendData("SqlQuery","Updatedb",params)){
+            if(client->getResult()!="1"){
+                QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+                return ;
+            }
+        }
         amount += total;
     }
     ui->amount->setText(QString::number(amount));
@@ -434,37 +492,51 @@ void store::on_order_clicked()
 // 点击“取消订单”按钮
 void store::on_cancelorder_clicked()
 {
-    for (int i=0;i<this->cartmodel->rowCount();i++) {
-        QString name = this->cartmodel->data(this->cartmodel->index(i,0)).toString();
-        QString reserved = this->cartmodel->data(this->cartmodel->index(i,2)).toString();
-        QString store = this->cartmodel->data(this->cartmodel->index(i,3)).toString();
-        QStringList sL;     sL << QString::number(reserved.toInt()*-1);
-        sqlQ->updatedb(sL,name,store);
+    for (int i = 0; i < selectedList.count(); i++){
+        int row = selectedList.at(i).row();
+        QString name = this->cartmodel->data(this->cartmodel->index(row,0)).toString();
+        QString reserved = this->cartmodel->data(this->cartmodel->index(row,2)).toString();
+        QString store = this->cartmodel->data(this->cartmodel->index(row,3)).toString();
+        QStringList params;
+        params << QString::number(reserved.toInt()*-1) << name << store;
+        if(client->sendData("SqlQuery","Updatedb",params)){
+            if(client->getResult()!="1")
+                QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+        }
     }
     ui->amount->setText("XX");
     ui->cancelorder->setVisible(false);
-
+    ui->pay->setVisible(false);
 }
 
 // 点击“结算”按钮
 void store::on_pay_clicked()
 {
-    QStringList sL;
-    sL << this->user->getUsername();
     if(user->purchase(ui->amount->text().toFloat(),0)){
-        json->editJson(user->getInfoList());
-        for (int i=0;i<this->cartmodel->rowCount();i++) {
-            QString name = this->cartmodel->data(this->cartmodel->index(i,0)).toString();
-            QString store = this->cartmodel->data(this->cartmodel->index(i,3)).toString();
-            sqlQ->updateResetDb(name,store);
+        client->sendData("JsonExe","EditJson",user->getInfoList());
+        for (int i = 0; i < selectedList.count(); i++){
+            int row = selectedList.at(i).row();
+            QString name = this->cartmodel->data(this->cartmodel->index(row,0)).toString();
+            QString store = this->cartmodel->data(this->cartmodel->index(row,3)).toString();
+            QString total = this->cartmodel->data(this->cartmodel->index(row,4)).toString();
+            QStringList params;     params << name << store;
+            if(client->sendData("SqlQuery","UpdateResetDb",params)){
+                if(client->getResult()!="1")
+                    QMessageBox::information(NULL, "QT网络通信", "服务端出错");
+            }
+            QStringList sL,sLL;
+            sL << name << this->user->getUsername();
+            sLL << store << total;
+            client->sendData("SqlCart","Deletedb",sL);
+            client->sendData("JsonExe","EditJson",sLL); //商家收款
         }
-        this->cartmodel->removeRows(0,this->cartmodel->rowCount());
-        this->sqlC->deletedb(sL);
         ui->amount->setText("XX");
+        this->on_toCart_clicked();
     }else{
         QMessageBox::information(NULL, "提示", "余额不足");
     }
     ui->pay->setVisible(false);
+    ui->cancelorder->setVisible(false);
 }
 
 // 顾客：点击“添加购物车”按钮
@@ -476,19 +548,23 @@ void store::on_cartPro_clicked()
     if(this->getProduct(0)){
         QStringList sL = pro->getContentList();
         float price = pro->getPrice();
-        int discount = sqlD->selectdb(sL[5],sL[4]);
+        QStringList params; params << sL[5] << sL[4];
+        client->sendData("SqlDiscount","Selectdb",params);
+        int discount = client->getResult().toInt();
         QStringList dsL = this->dia->cartProduct(price,discount);
-        if(dsL[0] == "1"){
+        if(dsL[0] == "1" && !dsL[1].isEmpty()){
             if(dsL[1].toInt() <= sL[3].toInt()){
                 sL.removeAt(5);
                 sL.removeAt(1);
                 if(discount!=0) sL[1] = QString::number(discount*price/10);
                 sL[2] = dsL[1]; //修改为购买数量
                 sL << this->user->getUsername();
-                this->sqlC->insertdb(sL);
+                client->sendData("SqlCart","Insertdb",sL);
             }else{
                 QMessageBox::information(NULL, "提示", "购买数量超过库存");
             }
+        }else{
+            QMessageBox::information(NULL, "提示", "购买数量为空");
         }
     }else{
         QMessageBox::information(NULL, "提示", "请选择商品进行购买");
@@ -505,7 +581,7 @@ void store::on_editCart_clicked()
         QStringList sL;
         sL << this->dia->cartEdit() << pro->getContentList()[0] << this->user->getUsername();
         if(sL[0] != "-1"){
-            this->sqlC->updatedb(sL);
+            client->sendData("SqlCart","Updatedb",sL);
         }
         this->on_toCart_clicked();
     }
@@ -520,7 +596,7 @@ void store::on_deleteCart_clicked()
     if(this->getProduct(1)){
         QStringList sL;
         sL << pro->getContentList()[0] << this->user->getUsername();
-        this->sqlC->deletedb(sL);
+        client->sendData("SqlCart","Deletedb",sL);
         this->on_toCart_clicked();
     }
     else{

@@ -1,6 +1,6 @@
 QT       += core gui
-QT       += sql
 QT       += network
+QT       += sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -18,40 +18,32 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    client.cpp \
-    lib/dialog.cpp \
-    lib/product.cpp \
-    lib/user.cpp \
+    instruction.cpp \
+    lib/jsonexe.cpp \
+    lib/sqlcart.cpp \
+    lib/sqldiscount.cpp \
+    lib/sqlquery.cpp \
     main.cpp \
-    mainwindow.cpp \
-    regis.cpp \
-    store.cpp
+    processpool.cpp \
+    server.cpp \
+    thread.cpp
 
 HEADERS += \
-    client.h \
-    lib/dialog.h \
-    lib/product.h \
-    lib/user.h \
-    mainwindow.h \
-    regis.h \
-    store.h
+    instruction.h \
+    lib/global.h \
+    lib/jsonexe.h \
+    lib/sqlcart.h \
+    lib/sqldiscount.h \
+    lib/sqlquery.h \ \
+    processpool.h \
+    server.h \
+    thread.h
 
-FORMS += \
-    mainwindow.ui \
-    regis.ui \
-    store.ui
-
-TRANSLATIONS += \
-    eCommerce_zh_CN.ts
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-RESOURCES += \
-    image.qrc
-
-DISTFILES += \
-    static/business.txt \
-    static/guest.txt
+FORMS += \
+    server.ui
