@@ -25,6 +25,8 @@ void dialog::setLineList(QStringList sL)
 
 QStringList dialog::getContent()
 {
+    if(dia) delete dia;
+
     QFormLayout form(dia);
     QLabel* label = new QLabel("商品:");
     label->setFont(QFont("Arial" , 14 , QFont::Thin));
@@ -160,13 +162,6 @@ QStringList dialog::addDiscount()
     label->setFont(QFont("Arial" , 14 , QFont::Thin));
     form.addRow(label);
 
-    // Value1
-    /*
-    QScrollBar* vscrollbar;
-    vscrollbar = new QScrollBar(Qt::Vertical,dia);
-    QLabel* type = new QLabel("食物");
-    type->setFont(QFont("Arial" , 14 , QFont::Thin));
-    */
     label = new QLabel("商品类别:");
     label->setFont(QFont("Arial" , 12 , QFont::Thin));
     QLineEdit *line1 = new QLineEdit(dia);
@@ -226,4 +221,67 @@ bool dialog::buyProduct(float price,int discount)
     return false;
 }
 
+QStringList dialog::cartProduct(float price,int discount)
+{
+    QStringList sL;
+    QFormLayout form(dia);
+    QLabel* label = new QLabel("商品价格为: "+QString::number(price)+"元");
+    label->setFont(QFont("Arial" , 14 , QFont::Thin));
+    form.addRow(label);
+
+    if(discount!=0 && discount!= 10){
+        label = new QLabel("折扣为:"+QString::number(discount)+"折");
+        label->setFont(QFont("Arial" , 14 , QFont::Thin));
+        form.addRow(label);
+
+        label = new QLabel("总费用为:"+QString::number(discount*price/10)+"元");
+        label->setFont(QFont("Arial" , 14 , QFont::Thin));
+        form.addRow(label);
+    }
+
+    label = new QLabel("购买数量:");
+    label->setFont(QFont("Arial" , 12 , QFont::Thin));
+    QLineEdit *line2 = new QLineEdit(dia);
+    line2->setValidator(new QIntValidator(line2));
+    form.addRow(label, line2);
+
+    label = new QLabel("确认添加购物车吗？");
+    label->setFont(QFont("Arial" , 12 , QFont::Thin));
+    form.addRow(label);
+
+    // Add Cancel and OK button
+    form.addRow(buttonBox);
+    QObject::connect(buttonBox, SIGNAL(accepted()), dia, SLOT(accept()));
+    QObject::connect(buttonBox, SIGNAL(rejected()), dia, SLOT(reject()));
+
+    if (dia->exec() == QDialog::Accepted) {
+        sL << "1";
+        sL << line2->text();
+        return sL;
+    }
+    sL << "0";
+    return sL;
+}
+
+QString dialog::cartEdit()
+{
+    QFormLayout form(dia);
+    QLabel* label = new QLabel("输入修改的商品数量：");
+    label->setFont(QFont("Arial" , 14 , QFont::Thin));
+    form.addRow(label);
+
+    QLineEdit *line = new QLineEdit(dia);
+    line->setValidator(new QIntValidator(line));
+    form.addRow(line);
+
+    // Add Cancel and OK button
+    form.addRow(buttonBox);
+    QObject::connect(buttonBox, SIGNAL(accepted()), dia, SLOT(accept()));
+    QObject::connect(buttonBox, SIGNAL(rejected()), dia, SLOT(reject()));
+
+    if (dia->exec() == QDialog::Accepted) {
+        return line->text();
+    }
+    return "-1";
+}
 

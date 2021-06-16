@@ -54,7 +54,7 @@ bool jsonexe::judgeJson(QString username)
 }
 
 
-bool jsonexe::editJson(user *newuser)
+bool jsonexe::editJson(QStringList sL)
 {
     // 获取已存在的users
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text)){
@@ -66,7 +66,6 @@ bool jsonexe::editJson(user *newuser)
     file.close();
     // 验证信息，更改密码
     QJsonArray newUsers;
-    QStringList sL = newuser->getInfoList();
     for (int i=0;i<users.size();i++) {
         QJsonObject userobj = users.at(i).toObject();
         if(userobj["username"] == sL[0]){

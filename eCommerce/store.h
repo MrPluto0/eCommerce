@@ -15,6 +15,7 @@
 #include "lib/user.h"
 #include "lib/sqldiscount.h"
 #include "lib/sqlquery.h"
+#include "lib/sqlcart.h"
 #include "lib/dialog.h"
 #include "lib/jsonexe.h"
 #include "lib/product.h"
@@ -39,15 +40,26 @@ public:
 
     /**
      * @brief 获取用户在table选中行的商品信息
+     * @param flag 选中购物车还是商店商品
      * @return bool 是否选中商品
      */
-    bool getProduct();
+    bool getProduct(int flag);
 
     /**
      * @brief 查看商品与管理商品模式的交换
      * @param mode 0:查看商品  1:管理商品
      */
     void changeMode(int mode);
+
+    /**
+     * @brief 设置tableView的表头
+     */
+    void setHeaders();
+
+    /**
+     * @brief 设置购物车tableView的表头
+     */
+    void setCartHeaders();
 
 private slots:
 
@@ -58,22 +70,20 @@ private slots:
     void getData(QJsonObject);
 
     /**
-     * @brief 设置tableView的表头
-     */
-    void setHeaders();
-
-    /**
      * @brief 在tableView中展示商品列表
      * @param proType 表示展示全部商品(0)或某类商品(1-4)
      */
     void showProducts(int proType);
 
-
-
     /**
      * @brief 切换到用户信息(主页)页面
      */
     void on_toIndex_clicked();
+
+    /**
+     * @brief 切换到购物车页面
+     */
+    void on_toCart_clicked();
 
     /**
      * @brief 切换到商品页面
@@ -137,16 +147,30 @@ private slots:
      */
     void on_discount_clicked();
 
+
+    void on_cartPro_clicked();
+
+    void on_order_clicked();
+
+    void on_pay_clicked();
+
+    void on_editCart_clicked();
+
+    void on_deleteCart_clicked();
+
+    void on_cancelorder_clicked();
+
 private:
     Ui::store *ui;
     QStringList typeMap;
-    QStandardItemModel* model;
+    QStandardItemModel* model,*cartmodel;
 
     user* user;
     int proType,mode;
     class product* pro;
     sqlQuery* sqlQ;
     sqlDiscount* sqlD;
+    sqlCart* sqlC;
     dialog* dia;
     jsonexe* json;
 };

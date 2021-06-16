@@ -12,14 +12,16 @@ private:
     QString name;
     QString intro;
     float price;
-    int rest;
+    int rest,reserved;
     QString store;
 public:
     QString type;
     product(QString name,QString intro,float price,int rest, QString store);
     virtual float getPrice();
+    int getReserved();
     QStringList getContentList();
     void updateRest(int num);
+    void updateReserved(int num);
 };
 
 /**

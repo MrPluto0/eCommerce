@@ -54,9 +54,25 @@ public:
 
     /**
      * @brief 提示框--购买商品框
+     * @param price 商品价格
+     * @param discount 商品折扣
      * @return 是否确认购买
      */
     bool buyProduct(float price,int discount);
+
+    /**
+     * @brief cartProduct
+     * @param price
+     * @param discount
+     * @return 是否确认购买+购买数量
+     */
+    QStringList cartProduct(float price,int discount);
+
+    /**
+     * @brief cartProduct
+     * @return 修改对应商品的数量
+     */
+    QString cartEdit();
 
 private:
     QDialog* dia;

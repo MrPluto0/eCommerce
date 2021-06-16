@@ -1,7 +1,6 @@
 #ifndef JSONEXE_H
 #define JSONEXE_H
 
-#include "lib/user.h"
 #include <QString>
 #include <QFile>
 #include <QJsonDocument>
@@ -37,7 +36,7 @@ public:
      * @param uu 某用户信息的类
      * @return 是否编辑成功
      */
-    bool editJson(user* uu);
+    bool editJson(QStringList sL);
 
     /**
      * @brief appendJson 添加

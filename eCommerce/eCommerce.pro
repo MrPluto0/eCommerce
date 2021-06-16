@@ -1,5 +1,6 @@
 QT       += core gui
 QT       += sql
+QT       += network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -20,6 +21,7 @@ SOURCES += \
     lib/dialog.cpp \
     lib/jsonexe.cpp \
     lib/product.cpp \
+    lib/sqlcart.cpp \
     lib/sqldiscount.cpp \
     lib/sqlquery.cpp \
     lib/user.cpp \
@@ -32,6 +34,7 @@ HEADERS += \
     lib/dialog.h \
     lib/jsonexe.h \
     lib/product.h \
+    lib/sqlcart.h \
     lib/sqldiscount.h \
     lib/sqlquery.h \
     lib/user.h \

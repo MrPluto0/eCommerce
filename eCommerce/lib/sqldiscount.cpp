@@ -18,7 +18,7 @@ sqlDiscount::sqlDiscount()
 int sqlDiscount::selectdb(QString proType, QString store)
 {
     if(db.open()){
-        qDebug()<<"Database Opened:select";
+        qDebug()<<"[Discount Select] Database Opened";
         //查询所有记录
         query.prepare(select_sql);
         query.addBindValue(proType);
@@ -29,17 +29,12 @@ int sqlDiscount::selectdb(QString proType, QString store)
         }
         while(query.next())
         {
-            int id = query.value(0).toInt();
-            QString name = query.value(1).toString();
             int discount = query.value(2).toInt();
-            QString store = query.value(3).toString();
-            qDebug()<<QString("ID:%1  Name:%2  Discount:%3 Store:%4")
-                      .arg(id).arg(name).arg(discount).arg(store);
             return discount;
         }
     }
     else{
-        qDebug()<< "Can't open database";
+        qDebug()<< "[Discount Select] Can't open database";
     }
     return 0;
 }
@@ -53,7 +48,7 @@ bool sqlDiscount::insertdb(QString proType, QString discount, QString store)
         return this->updatedb(proType,discount,store);
     }else{
         if(db.open()){
-            qDebug()<<"Database Opened:insert";
+            qDebug()<<"[Discount Insert] Database Opened";
             //查询所有记录
             query.prepare(insert_sql);
             query.addBindValue(proType);
@@ -66,7 +61,7 @@ bool sqlDiscount::insertdb(QString proType, QString discount, QString store)
             }
         }
         else{
-            qDebug()<< "Can't open database";
+            qDebug()<< "[Discount Insert] Can't open database";
             return false;
         }
         return true;
@@ -76,7 +71,7 @@ bool sqlDiscount::insertdb(QString proType, QString discount, QString store)
 bool sqlDiscount::updatedb(QString proType, QString discount, QString store)
 {
     if(db.open()){
-        qDebug()<<"Database Opened:update";
+        qDebug()<<"[Discount Update] Database Opened";
         query.prepare(update_sql);
         query.addBindValue(discount.toInt());
         query.addBindValue(proType);
@@ -88,11 +83,11 @@ bool sqlDiscount::updatedb(QString proType, QString discount, QString store)
         }
         else
         {
-            qDebug() << "updated Success!";
+            qDebug() << "[Discount Update] Updated Success!";
             return true;
         }
     }else{
-        qDebug() << "updated Failed!";
+        qDebug() << "[Discount Update] Updated Failed!";
         return false;
     }
 }

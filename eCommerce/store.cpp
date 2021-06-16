@@ -4,29 +4,46 @@ store::store(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::store)
 {
+    // 设置关闭窗口调用析构函数
+    this->setAttribute(Qt::WA_DeleteOnClose);
+
     ui->setupUi(this);
     proType = 0;    //是否分类模式
     mode = 0;       //是否用户模式
-    sqlQ = NULL;    //空指针，未分配内存
+    sqlQ = new sqlQuery();
     sqlD = new sqlDiscount();
+    sqlC = new sqlCart();
+    dia = new dialog(this);
     user = NULL;
     pro = NULL;
     json = NULL;
-    dia = NULL;
     typeMap << "" << "食物" << "衣服" << "图书" << "电器";
+
     // 利用lambda表达式向槽函数传参
     connect(ui->food,&QPushButton::clicked,this,[=](){showProducts(1);});
     connect(ui->clothes,&QPushButton::clicked,this,[=](){showProducts(2);});
     connect(ui->book,&QPushButton::clicked,this,[=](){showProducts(3);});
     connect(ui->machine,&QPushButton::clicked,this,[=](){showProducts(4);});
+
+    // 设置两个tableView的表头
+    this->setHeaders();
+    this->setCartHeaders();
+
+    // 设置两个按钮不可见
+    ui->cancelorder->setVisible(false);
+    ui->pay->setVisible(false);
 }
 
 store::~store()
 {
+    if(this->cartmodel->rowCount()!=0){
+        this->on_cancelorder_clicked();
+    }
+
     delete ui;
     if(sqlQ) delete sqlQ;
     if(model) delete model;
-    if(dia) delete dia;
+    if(dia) delete this->dia;
     if(json) delete json;
 }
 
@@ -36,7 +53,6 @@ void store::on_close_clicked()
     mw->show();
     this->close();
 }
-
 
 void store::getData(QJsonObject user)
 {
@@ -60,10 +76,10 @@ void store::getData(QJsonObject user)
 
 void store::setHeaders()
 {
-    this->model = new QStandardItemModel(this);
     QStringList headerList;
     headerList<<"类型"<<"名称"<<"简介"<<"价格"<<"剩余"<<"商家";
-    model->setHorizontalHeaderLabels(headerList);
+    this->model = new QStandardItemModel(this);
+    this->model->setHorizontalHeaderLabels(headerList);
     ui->list->setModel(model);
     ui->list->horizontalHeader()->setVisible(true);
     ui->list->setColumnWidth(0, 60);    //设置列的宽度
@@ -74,6 +90,22 @@ void store::setHeaders()
     ui->list->setColumnWidth(5, 70);
 }
 
+void store::setCartHeaders()
+{
+    QStringList headerList;
+    headerList<<"名称"<<"价格"<<"数量"<<"商家"<<"总计";
+    this->cartmodel = new QStandardItemModel(this);
+    this->cartmodel->setHorizontalHeaderLabels(headerList);
+    ui->cartlist->setModel(cartmodel);
+    ui->cartlist->horizontalHeader()->setVisible(true);
+    ui->cartlist->setColumnWidth(0, 100);    //设置列的宽度
+    ui->cartlist->setColumnWidth(1, 100);
+    ui->cartlist->setColumnWidth(2, 100);
+    ui->cartlist->setColumnWidth(3, 100);
+    ui->cartlist->setColumnWidth(4, 100);
+}
+
+// 跳转主页
 void store::on_toIndex_clicked()
 {
     QStringList sL = this->user->getInfoList();
@@ -83,17 +115,43 @@ void store::on_toIndex_clicked()
     ui->score->setText(sL[2]);
 }
 
+// 跳转购物车
+void store::on_toCart_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(1);
+
+    this->cartmodel->removeRows(0,cartmodel->rowCount());
+
+    QSqlQuery query= sqlC->selectdb(this->user->getUsername());;
+    while(query.next())
+    {
+        int row = this->cartmodel->rowCount();
+        QStringList sL; //QStringList不能用普通的索引set，但是可以get
+        sL << query.value(1).toString();
+        sL << query.value(2).toString();
+        sL << query.value(3).toString();
+        sL << query.value(4).toString();
+        sL << QString::number(query.value(2).toInt()*query.value(3).toInt());
+        for (int i=0;i<=4;i++) {
+            this->cartmodel->setItem(row,i,new QStandardItem(sL[i]));
+            this->cartmodel->item(row,i)->setTextAlignment(Qt::AlignCenter);  //item居中！！！
+        }
+    }
+}
+
+// 跳转商店
 void store::on_toStore_clicked()
 {
-    changeMode(0);
+    this->changeMode(0);
     // 跳转页面
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->stackedWidget->setCurrentIndex(2);
     showProducts(0);
 }
 
+// 跳转关于
 void store::on_toAbout_clicked()
 {
-    ui->stackedWidget->setCurrentIndex(2);
+    ui->stackedWidget->setCurrentIndex(3);
 }
 
 // 列出商品信息
@@ -103,7 +161,6 @@ void store::showProducts(int proType)
     QSqlQuery query;
 
     this->proType = proType;
-    this->setHeaders();
 
     // 清理除了表头的数据
     this->model->removeRows(0,model->rowCount());
@@ -135,17 +192,32 @@ void store::showProducts(int proType)
 }
 
 // 获取选中行的商品信息
-bool store::getProduct()
+bool store::getProduct(int flag)
 {
-    int row = ui->list->currentIndex().row();
-    if(row==-1) // 未选中
-        return false;
-    QString type = model->data(model->index(row,0)).toString();
-    QString name = model->data(model->index(row,1)).toString();
-    QString intro = model->data(model->index(row,2)).toString();
-    int price = model->data(model->index(row,3)).toInt();
-    int rest = model->data(model->index(row,4)).toInt();
-    QString store = model->data(model->index(row,5)).toString();
+    int row,price,rest;
+    QString type,name,intro,store;
+    if(flag == 0){
+        row = ui->list->currentIndex().row();
+        if(row==-1) return false;
+        type = model->data(model->index(row,0)).toString();
+        name = model->data(model->index(row,1)).toString();
+        intro = model->data(model->index(row,2)).toString();
+        price = model->data(model->index(row,3)).toInt();
+        rest = model->data(model->index(row,4)).toInt();
+        store = model->data(model->index(row,5)).toString();
+    }
+    else{
+        row = ui->cartlist->currentIndex().row();
+        if(row==-1) return false;
+        type = "cart";
+        name = cartmodel->data(cartmodel->index(row,0)).toString();
+        price =cartmodel->data(cartmodel->index(row,1)).toInt();
+        intro = "cart";
+        rest = -1;
+        store =cartmodel->data(cartmodel->index(row,3)).toString();
+    }
+
+
     switch (typeMap.indexOf(type)) {
     case 1:
         pro = new food(name,intro,price,rest,store);
@@ -175,28 +247,31 @@ void store::changeMode(int mode)
     ui->editPro->setVisible(mode==1);
     ui->delPro->setVisible(mode==1);
     ui->buyPro->setVisible(mode!=1);
+    ui->cartPro->setVisible(mode!=1);
 }
 
 // 点击“管理商品”按钮
 void store::on_managePro_clicked()
 {
 
-    ui->stackedWidget->setCurrentIndex(1);
-    changeMode(1);
+    ui->stackedWidget->setCurrentIndex(2);
+    this->changeMode(1);
     showProducts(0);
 }
 
 // 点击“购买商品”按钮
 void store::on_buyPro_clicked()
 {
-    if(getProduct()){
+    if(this->dia) delete this->dia;
+    dia = new dialog(this);
+
+    if(this->getProduct(0)){
         QStringList sL = pro->getContentList();
         float price = pro->getPrice();
         int discount = sqlD->selectdb(sL[5],sL[4]);
-        dia = new dialog(this);
-        if(dia->buyProduct(price,discount)){
+        if(this->dia->buyProduct(price,discount)){
             if(user->purchase(price,discount)){
-                json->editJson(user);
+                json->editJson(user->getInfoList());
                 pro->updateRest(1);
                 QStringList sL = pro->getContentList();
                 sqlQ->updatedb(sL,sL[0],sL[4]);
@@ -205,17 +280,18 @@ void store::on_buyPro_clicked()
                 QMessageBox::information(NULL, "提示", "余额不足");
             }
         }
-        delete dia;
     }else{
         QMessageBox::information(NULL, "提示", "请选择商品进行购买");
     }
 }
 
-// 点击“添加商品”按钮
+// 商家：点击“添加商品”按钮
 void store::on_addPro_clicked()
 {
+    if(this->dia) delete this->dia;
     dia = new dialog(this);
-    QStringList dsL = dia->getContent();
+
+    QStringList dsL = this->dia->getContent();
     if(dsL[0] == "1" && dsL[1] != ""){
         dsL.removeAt(0);
         dsL<<user->getUsername();
@@ -224,17 +300,18 @@ void store::on_addPro_clicked()
     }else{
         QMessageBox::information(NULL,"提示","请输入完整的信息");
     }
-    delete dia;
 }
 
-// 点击“编辑商品”按钮
+// 商家：点击“编辑商品”按钮
 void store::on_editPro_clicked()
 {
-    if(getProduct()){
+    if(this->dia) delete this->dia;
+    dia = new dialog(this);
+
+    if(this->getProduct(0)){
         QStringList sL = pro->getContentList();
-        dia = new dialog(this);
-        dia->setLineList(sL);
-        QStringList dsL = dia->getContent();
+        this->dia->setLineList(sL);
+        QStringList dsL = this->dia->getContent();
         if(dsL[0] == "1"){
             dsL.removeAt(0);
             sqlQ->updatedb(dsL,sL[0],sL[4]);
@@ -242,18 +319,17 @@ void store::on_editPro_clicked()
             this->showProducts(proType);
         }
 
-        delete dia;
     }
     else{
         QMessageBox::information(NULL, "提示", "请选择某行进行编辑");
     }
 }
 
-// 点击“删除商品”按钮
+// 商家：点击“删除商品”按钮
 void store::on_delPro_clicked()
 {
     // tableView中删除remove导致下面获取data失败
-    if(getProduct()){
+    if(this->getProduct(0)){
         QString name = pro->getContentList()[0];
         // 在数据库中删除
         sqlQ->deldb(name,user->getUsername());
@@ -268,7 +344,7 @@ void store::on_delPro_clicked()
 void store::on_searchPro_clicked()
 {
     int row=0;
-    qDebug() << ui->searchContent->text();
+    qDebug() << "[Search Pro]" << ui->searchContent->text();
     QSqlQuery query = sqlQ->searchdb(ui->searchContent->text());
     model->removeRows(0,model->rowCount());
     while(query.next())
@@ -291,45 +367,164 @@ void store::on_searchPro_clicked()
 // 点击“修改密码”按钮
 void store::on_editPass_clicked()
 {
-    // 获取更改密码的信息
+    if(this->dia) delete this->dia;
     dia = new dialog(this);
-    QStringList sL = dia->changePass();
+
+    // 获取更改密码的信息
+    QStringList sL = this->dia->changePass();
     if(sL[0] == "1"){
         if(!user->editPass(sL)){
             QMessageBox::information(NULL, "提示", "账号或旧密码错误");
         }
-        else if(json->editJson(user)){
+        else if(json->editJson(user->getInfoList())){
             QMessageBox::information(NULL, "提示", "密码修改成功");
         }
     }
-    delete dia;
 }
 
 // 点击“充值”按钮
 void store::on_recharge_clicked()
 {
+    if(this->dia) delete this->dia;
     dia = new dialog(this);
-    QStringList sL = dia->recharge();
+
+    QStringList sL = this->dia->recharge();
     if(sL[0] == "1"){
         user->recharge(sL[1].toInt());
-        if(json->editJson(user)){
+        if(json->editJson(user->getInfoList())){
             QStringList sL = this->user->getInfoList();
             ui->acount->setText(sL[1]);
             QMessageBox::information(NULL, "提示", "账户充值成功");
         }
     }
-    delete dia;
 }
 
 // 点击“打折”按钮
 void store::on_discount_clicked()
 {
+    if(this->dia) delete this->dia;
     dia = new dialog(this);
-    QStringList sL = dia->addDiscount();
+
+    QStringList sL = this->dia->addDiscount();
     if(sqlD->insertdb(sL[1],sL[2],user->getUsername())){
         QMessageBox::information(NULL, "提示", "打折成功");
     }else{
         QMessageBox::information(NULL, "提示", "输入不完整");
     }
-    delete dia;
 }
+
+// 点击“生成订单”按钮
+void store::on_order_clicked()
+{
+    float amount=0;
+    for (int i=0;i<this->cartmodel->rowCount();i++) {
+        QString name = this->cartmodel->data(this->cartmodel->index(i,0)).toString();
+        QString reserved = this->cartmodel->data(this->cartmodel->index(i,2)).toString();
+        QString store = this->cartmodel->data(this->cartmodel->index(i,3)).toString();
+        float total = this->cartmodel->data(this->cartmodel->index(i,4)).toFloat();
+        QStringList sL;     sL << reserved;
+        sqlQ->updatedb(sL,name,store);
+        amount += total;
+    }
+    ui->amount->setText(QString::number(amount));
+    ui->cancelorder->setVisible(true);
+    ui->pay->setVisible(true);
+}
+
+// 点击“取消订单”按钮
+void store::on_cancelorder_clicked()
+{
+    for (int i=0;i<this->cartmodel->rowCount();i++) {
+        QString name = this->cartmodel->data(this->cartmodel->index(i,0)).toString();
+        QString reserved = this->cartmodel->data(this->cartmodel->index(i,2)).toString();
+        QString store = this->cartmodel->data(this->cartmodel->index(i,3)).toString();
+        QStringList sL;     sL << QString::number(reserved.toInt()*-1);
+        sqlQ->updatedb(sL,name,store);
+    }
+    ui->amount->setText("XX");
+    ui->cancelorder->setVisible(false);
+
+}
+
+// 点击“结算”按钮
+void store::on_pay_clicked()
+{
+    QStringList sL;
+    sL << this->user->getUsername();
+    if(user->purchase(ui->amount->text().toFloat(),0)){
+        json->editJson(user->getInfoList());
+        for (int i=0;i<this->cartmodel->rowCount();i++) {
+            QString name = this->cartmodel->data(this->cartmodel->index(i,0)).toString();
+            QString store = this->cartmodel->data(this->cartmodel->index(i,3)).toString();
+            sqlQ->updateResetDb(name,store);
+        }
+        this->cartmodel->removeRows(0,this->cartmodel->rowCount());
+        this->sqlC->deletedb(sL);
+        ui->amount->setText("XX");
+    }else{
+        QMessageBox::information(NULL, "提示", "余额不足");
+    }
+    ui->pay->setVisible(false);
+}
+
+// 顾客：点击“添加购物车”按钮
+void store::on_cartPro_clicked()
+{
+    if(this->dia) delete this->dia;
+    dia = new dialog(this);
+
+    if(this->getProduct(0)){
+        QStringList sL = pro->getContentList();
+        float price = pro->getPrice();
+        int discount = sqlD->selectdb(sL[5],sL[4]);
+        QStringList dsL = this->dia->cartProduct(price,discount);
+        if(dsL[0] == "1"){
+            if(dsL[1].toInt() <= sL[3].toInt()){
+                sL.removeAt(5);
+                sL.removeAt(1);
+                if(discount!=0) sL[1] = QString::number(discount*price/10);
+                sL[2] = dsL[1]; //修改为购买数量
+                sL << this->user->getUsername();
+                this->sqlC->insertdb(sL);
+            }else{
+                QMessageBox::information(NULL, "提示", "购买数量超过库存");
+            }
+        }
+    }else{
+        QMessageBox::information(NULL, "提示", "请选择商品进行购买");
+    }
+}
+
+// 顾客：点击“购物车编辑”按钮
+void store::on_editCart_clicked()
+{
+    if(this->dia) delete this->dia;
+    dia = new dialog(this);
+
+    if(this->getProduct(1)){
+        QStringList sL;
+        sL << this->dia->cartEdit() << pro->getContentList()[0] << this->user->getUsername();
+        if(sL[0] != "-1"){
+            this->sqlC->updatedb(sL);
+        }
+        this->on_toCart_clicked();
+    }
+    else{
+        QMessageBox::information(NULL, "提示", "请选择某行进行编辑");
+    }
+}
+
+// 顾客：点击“购物车删除”按钮
+void store::on_deleteCart_clicked()
+{
+    if(this->getProduct(1)){
+        QStringList sL;
+        sL << pro->getContentList()[0] << this->user->getUsername();
+        this->sqlC->deletedb(sL);
+        this->on_toCart_clicked();
+    }
+    else{
+        QMessageBox::information(NULL, "提示", "请选择某行进行删除");
+    }
+}
+

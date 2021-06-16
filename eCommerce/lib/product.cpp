@@ -8,11 +8,17 @@ product::product(QString name, QString intro, float price, int rest, QString sto
     this->price = price;
     this->rest = rest;
     this->store = store;
+    this->reserved = 0;
 }
 
 float product::getPrice()
 {
     return price;
+}
+
+int product::getReserved()
+{
+    return reserved;
 }
 
 QStringList product::getContentList()
@@ -25,6 +31,11 @@ QStringList product::getContentList()
 void product::updateRest(int num)
 {
     rest-=num;
+}
+
+void product::updateReserved(int num)
+{
+    reserved+=num;
 }
 
 food::food(QString name, QString intro, float price, int rest, QString store)
