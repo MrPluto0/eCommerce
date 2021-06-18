@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1080</width>
+    <height>640</height>
+   </rect>
+  </property>
+  <property name="font">
+   <font>
+    <family>楷体</family>
+   </font>
+  </property>
+  <property name="windowTitle">
+   <string>美多商城</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QPushButton {
+    border: 1px solid #333333;
+	border-radius:10px;
+	background: #ccc;
+    padding: 4px;
+    min-width: 65px;
+    min-height: 12px;
+}
+
+QPushButton:hover {
+    background-color: #FFFFFF;
+    border-color: #444444;
+}
+</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QLabel" name="title">
+    <property name="geometry">
+     <rect>
+      <x>370</x>
+      <y>40</y>
+      <width>341</width>
+      <height>121</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>汉仪许静行楷W</family>
+      <pointsize>48</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>美多商城</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>194</y>
+      <width>511</width>
+      <height>225</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="1" column="0">
+      <widget class="QLabel" name="password">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>211</width>
+         <height>91</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>密码</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="scaledContents">
+        <bool>false</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="user">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">.QLineEdit{ 
+background-color: rgba(255,240,255,120); 
+border:1px solid #ccc;
+}
+.QLineEdit:focus{background-color: rgb(255,255,255)}</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="0">
+      <widget class="QLabel" name="username">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>211</width>
+         <height>91</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <family>楷体</family>
+         <pointsize>16</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>账号</string>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::AutoText</enum>
+       </property>
+       <property name="scaledContents">
+        <bool>false</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="pass">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">.QLineEdit{ 
+background-color: rgba(255,240,255,120); 
+border:1px solid #ccc;
+}
+.QLineEdit:focus{background-color: rgb(255,255,255)}</string>
+       </property>
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>390</x>
+      <y>450</y>
+      <width>288</width>
+      <height>34</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>100</number>
+     </property>
+     <item>
+      <widget class="QPushButton" name="login">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="font">
+        <font>
+         <family>宋体</family>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>登录</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="toRegister">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="font">
+        <font>
+         <family>宋体</family>
+         <pointsize>14</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>注册</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QListView" name="listView">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>1081</width>
+      <height>641</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">background-image: url(:/image/back.jpg);</string>
+    </property>
+   </widget>
+   <zorder>listView</zorder>
+   <zorder>title</zorder>
+   <zorder>gridLayoutWidget</zorder>
+   <zorder>layoutWidget</zorder>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
