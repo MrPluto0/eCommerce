@@ -1,0 +1,23 @@
+[
+    {
+        "acount": "998",
+        "password": "123",
+        "score": "0",
+        "type": 0,
+        "username": "gym"
+    },
+    {
+        "acount": "240",
+        "password": "123",
+        "score": "0",
+        "type": 1,
+        "username": "123"
+    },
+    {
+        "acount": "360",
+        "password": "123",
+        "score": "0",
+        "type": "0",
+        "username": "pluto"
+    }
+]
