@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/data">
+        <file>business.json</file>
+        <file>guest.json</file>
+    </qresource>
+</RCC>
